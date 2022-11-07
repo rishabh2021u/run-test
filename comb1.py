@@ -104,7 +104,9 @@ def vid(data, file_name,sleep):
         title=data['title']
         # post_video(title,f"videos/{file_name}",0)
         _thread.start_new_thread(post_video, (title, f'/tmp/{file_name}.mp4',data,0))
-
+    else:
+        with open(f"done.txt", "a") as file:
+            file.write(data['url']+"\n")
 def image(data, sleep):
     filename=f"{str(uuid.uuid1())}.jpg"
     time.sleep(sleep)
@@ -140,7 +142,7 @@ for i in range(13,23):
                 if th<3:
                     th+=1
                 else:
-                    time.sleep(30)
+                    time.sleep(5)
                     th=0
 
 while True:
