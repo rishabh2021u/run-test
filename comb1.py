@@ -1,4 +1,4 @@
-import praw, os, subprocess, time, requests, re, json, _thread,uuid
+import praw, os, subprocess, time, requests, re, json, _thread,uuid, logging
 from praw.models import InlineGif, InlineImage, InlineVideo
 # import sys
 # sys.path.insert(1, '/home/ubuntu/mum/IC')
@@ -14,7 +14,7 @@ reddit = praw.Reddit(
 )
 logging.basicConfig(filename="log.txt",
                     format='%(asctime)s %(message)s',
-                    filemode='w')
+                    filemode='a')
  
 # Creating an object
 logger = logging.getLogger()
@@ -22,7 +22,8 @@ logger = logging.getLogger()
 # Setting the threshold of logger to DEBUG
 logger.setLevel(logging.INFO)
 
-def lprint(text, end=None):
+logger.info("\n\n----------------------------\n\n")
+def lprint(text, end=None, **kwargs):
     try:
         logger.info(text)
         print(text, end=end)
@@ -46,15 +47,15 @@ def post_video(title,path,data,sleep):
         wat=path.replace(".mp4", "")+ "_watthumb.png"
         subprocess.call(['ffmpeg', '-i', f'{path}', '-ss', '00:00:01.000', '-vframes','1', f'{wat}', '-y'], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
         submission=subreddit.submit_video(title, path, thumbnail_path=wat)
-        print(f"{submission.permalink} : {submission.title}")
+        lprint(f"{submission.permalink} : {submission.title}")
         with open(f"done.txt", "a") as file:
             file.write(data['url']+"\n")
         with open(f"posted.txt", "a") as file:
-            file.write(f"submission.permalink : {data['url']}\n")
+            file.write(f"{submission.permalink} : {data['url']}\n")
         os.remove(f"{path}")
         os.remove(f"{wat}")
     except Exception as e:
-        print(e)
+        lprint(e)
         time.sleep(2)
         post_video(title,path,sleep)
 
@@ -62,11 +63,11 @@ def post_gallery(title,g_data, i,sleep):
     time.sleep(sleep)
     try:
         submission=subreddit.submit_gallery(title, g_data)
-        print(submission.permalink)
+        lprint(submission.permalink)
         for it in g_data:
             os.remove(f"{it['image_path']}")
     except Exception as e:
-        print(e)
+        lprint(e)
         time.sleep(2)
         post_gallery(title,g_data, i,sleep)
 
@@ -94,20 +95,20 @@ def vid(data, file_name,sleep):
                     if(response.status_code == 200):
                         file.write(response.content)
                     else:
-                        print(f"no video found for {data['url']}")
+                        lprint(f"no video found for {data['url']}")
     with open(f'/tmp/{file_name}_audio.mp3','wb') as file:
-        print('Downloading Audio...',end = '',flush = True)
+        lprint('Downloading Audio...',end = '',flush = True)
         response = requests.get(audio_url,headers=headers)
         if(response.status_code == 200):
             file.write(response.content)
-            print('Audio Downloaded...!')
+            lprint('Audio Downloaded...!')
         else:
-            print(f"Audio Download Failed..! for {data['url']}")
+            lprint(f"Audio Download Failed..! for {data['url']}")
     if os.path.exists(f'/tmp/{file_name}_video.mp4')==True and os.path.exists(f'/tmp/{file_name}_audio.mp3')==True:
-        print(f"procession {data['url']}")
+        lprint(f"procession {data['url']}")
         subprocess.call(['ffmpeg','-i',f'/tmp/{file_name}_video.mp4','-i',f'/tmp/{file_name}_audio.mp3','-map','0:v','-map','1:a','-c:v','copy',f'/tmp/{file_name}.mp4', '-y'],stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT) #, ' > /dev/null 2> /dev/null'
     elif os.path.exists(f'/tmp/{file_name}_video.mp4')==True and os.path.exists(f'/tmp/{file_name}_audio.mp3')!=True:
-        print("audio not found but video found")
+        lprint("audio not found but video found")
         os.system(f"cp /tmp/{file_name}_video.mp4 /tmp/{file_name}.mp4")
     else:
         os.system(f"yt-dlp {data['url']}/DASHPlaylist.mpd -o /tmp/{file_name}.mp4")
@@ -119,7 +120,7 @@ def vid(data, file_name,sleep):
     #     os.system(f"yt-dlp  {data['url']}/HLSPlaylist.m3u8 -o /tmp/{file_name}.mp4")
     # os.system(f"youtube-dl {data['url']}/DASHPlaylist.mpd -o videos/{file_name}")
     if os.path.exists(f'/tmp/{file_name}.mp4'):
-        print(f"{data['title']} : {data['url']}")
+        lprint(f"{data['title']} : {data['url']}")
         title=data['title']
         # post_video(title,f"videos/{file_name}",0)
         _thread.start_new_thread(post_video, (title, f'/tmp/{file_name}.mp4',data,0))
@@ -131,14 +132,14 @@ def image(data, sleep):
     time.sleep(sleep)
     req=requests.get(data['url'])
     if req.status_code==200:
-        print(f"{data['title']} : {data['url']}")
+        lprint(f"{data['title']} : {data['url']}")
         with open(f"/tmp/{filename}", "wb") as file:
             file.write(req.content)
         submission=subreddit.submit_image(data['title'], f"/tmp/{filename}")
         os.remove(f"/tmp/{filename}")
-        print(f"{submission.permalink} : {submission.title}")
+        lprint(f"{submission.permalink} : {submission.title}")
         with open(f"posted.txt", "a") as file:
-            file.write(f"submission.permalink : {data['url']}\n")
+            file.write(f"{submission.permalink} : {data['url']}\n")
         
     with open(f"done.txt", "a") as file:
         file.write(data['url']+"\n")
@@ -148,26 +149,28 @@ g_data=[]
 th=0
 vi=0
 im=0
-for i in range(13,23):
+for i in range(26,29):
     image_no=0
     jso=json.load(open(f"/Chodi/{str(i)}chodi.json"))
-    print(i)
+    lprint(i)
     for data in jso['data']:
         if data['url'] not in done:
             if "i.redd.it" in data['url']:
                 im+=1
+                
                 _thread.start_new_thread(image, (data,0))
             if "v.redd.it" in data['url']:
                 vi+=1
-                print(f"{data['title']} : {data['url']}")
-                _thread.start_new_thread(vid, (data, f"{str(vi)}_video",0))
-                if th<6:
+                lprint(f"{data['title']} : {data['url']}")
+                vid(data, f"{str(vi)}_video",0)
+ #               _thread.start_new_thread(vid, (data, f"{str(vi)}_video",0))
+                if th<3:
                     th+=1
                 else:
-                    time.sleep(10)
+                    time.sleep(30)
                     th=0
 
 while True:
     time.sleep(5)
-    print(".")
+    lprint(".")
     pass
