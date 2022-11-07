@@ -12,7 +12,22 @@ reddit = praw.Reddit(
     user_agent="OkAppearance1201:praw (By u/OkAppearance1201)",
     username="OkAppearance1201",
 )
+logging.basicConfig(filename="log.txt",
+                    format='%(asctime)s %(message)s',
+                    filemode='w')
+ 
+# Creating an object
+logger = logging.getLogger()
+ 
+# Setting the threshold of logger to DEBUG
+logger.setLevel(logging.INFO)
 
+def lprint(text, end=None):
+    try:
+        logger.info(text)
+        print(text, end=end)
+    except:
+        print(text, end=end)
 # reddit = praw.Reddit(
 #     client_id="kwChlrj_VwZZruGYoPvt4A",
 #     client_secret="X0kIi6eNwl7eSv01lRPLg1ZptTZ41A",
@@ -34,6 +49,8 @@ def post_video(title,path,data,sleep):
         print(f"{submission.permalink} : {submission.title}")
         with open(f"done.txt", "a") as file:
             file.write(data['url']+"\n")
+        with open(f"posted.txt", "a") as file:
+            file.write(f"submission.permalink : {data['url']}\n")
         os.remove(f"{path}")
         os.remove(f"{wat}")
     except Exception as e:
@@ -83,12 +100,14 @@ def vid(data, file_name,sleep):
         response = requests.get(audio_url,headers=headers)
         if(response.status_code == 200):
             file.write(response.content)
-            print('\rAudio Downloaded...!')
+            print('Audio Downloaded...!')
         else:
-            print(f"\rAudio Download Failed..! for {data['url']}")
+            print(f"Audio Download Failed..! for {data['url']}")
     if os.path.exists(f'/tmp/{file_name}_video.mp4')==True and os.path.exists(f'/tmp/{file_name}_audio.mp3')==True:
+        print(f"procession {data['url']}")
         subprocess.call(['ffmpeg','-i',f'/tmp/{file_name}_video.mp4','-i',f'/tmp/{file_name}_audio.mp3','-map','0:v','-map','1:a','-c:v','copy',f'/tmp/{file_name}.mp4', '-y'],stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT) #, ' > /dev/null 2> /dev/null'
     elif os.path.exists(f'/tmp/{file_name}_video.mp4')==True and os.path.exists(f'/tmp/{file_name}_audio.mp3')!=True:
+        print("audio not found but video found")
         os.system(f"cp /tmp/{file_name}_video.mp4 /tmp/{file_name}.mp4")
     else:
         os.system(f"yt-dlp {data['url']}/DASHPlaylist.mpd -o /tmp/{file_name}.mp4")
@@ -118,6 +137,9 @@ def image(data, sleep):
         submission=subreddit.submit_image(data['title'], f"/tmp/{filename}")
         os.remove(f"/tmp/{filename}")
         print(f"{submission.permalink} : {submission.title}")
+        with open(f"posted.txt", "a") as file:
+            file.write(f"submission.permalink : {data['url']}\n")
+        
     with open(f"done.txt", "a") as file:
         file.write(data['url']+"\n")
 
@@ -137,12 +159,12 @@ for i in range(13,23):
                 _thread.start_new_thread(image, (data,0))
             if "v.redd.it" in data['url']:
                 vi+=1
-                print(data['url'])
+                print(f"{data['title']} : {data['url']}")
                 _thread.start_new_thread(vid, (data, f"{str(vi)}_video",0))
-                if th<3:
+                if th<6:
                     th+=1
                 else:
-                    time.sleep(5)
+                    time.sleep(10)
                     th=0
 
 while True:
