@@ -5,7 +5,7 @@
 # CMD echo "build done"
 FROM registry-intl.cn-hongkong.aliyuncs.com/rishabh/projectbuildpublic:latest
 # FROM registry-intl.cn-hongkong.aliyuncs.com/rishabh/projectdockerbuild
-RUN git clone https://github.com/rishabh2021u/run-test -o /app/py
+RUN git clone https://github.com/rishabh2021u/run-test /app/py
 RUN bash a 20
 RUN bash push
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/
