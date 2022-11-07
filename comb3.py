@@ -150,7 +150,7 @@ g_data=[]
 th=0
 vi=0
 im=0
-for i in range(28,34):
+for i in range(37,38):
     image_no=0
     jso=json.load(open(f"/Chodi/{str(i)}chodi.json"))
     lprint(i)
